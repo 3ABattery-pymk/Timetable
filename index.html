@@ -62,6 +62,12 @@ button.pri{background:var(--ink);color:#fff}
 .mt .me{background:#f3f4f6}
 .pill{display:inline-block;min-width:26px;padding:1px 7px;border-radius:99px;font-size:13px}
 .pill.g{background:var(--gb);color:#17703f}.pill.o{background:var(--ob);color:#9a5410}.pill.r{background:var(--rb);color:#a02328}.pill.z{color:#bbb}
+.match{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--gb);border:1px solid var(--g);color:#17703f}
+.match.none{background:#fff;border:1px dashed var(--line);color:var(--mute)}
+.match .t{font-weight:700;font-size:15px;margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:#fff;border:1px solid var(--g);color:#17703f;border-radius:99px;padding:5px 11px;font-size:13px;cursor:pointer}
+.chip b{font-weight:700}
 .mh2{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .mh2 b{font-size:16px}.mh2 span{font-size:12px;color:var(--mute)}
 .mypick{display:flex;gap:6px;margin-bottom:10px}
@@ -99,6 +105,8 @@ button.pri{background:var(--ink);color:#fff}
     <div class="grid" id="cal" style="margin-top:4px"></div>
     <div class="note hide" id="allNote">วันที่ไฮไลต์เขียว = ทุกคนที่กรอกแล้วว่างอย่างน้อยหนึ่งช่วงเวลา (ไม่มีใครติดแดงทั้งวัน) · ตัวเลขเขียว = จำนวนคนว่าง</div>
   </div>
+  <div id="matchBox"></div>
+
   <div class="card">
     <div class="mh2"><b>👥 สมาชิก</b><span id="memSub"></span></div>
     <div id="memBox"></div>
@@ -160,6 +168,7 @@ function render(){
     h+='<div class="'+cls+'" data-k="'+k+'"><div class="n">'+d+'</div>'+inner+'</div>';
   }
   $('cal').innerHTML=h;
+  renderMatch();
   renderMembers();
 }
 function summary(k){
@@ -177,6 +186,30 @@ function summary(k){
   return {people,g,r,top};
 }
 
+const SHORT=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const SLOTNAME={m:'เช้า',a:'บ่าย',e:'เย็น'};
+function renderMatch(){
+  const people=Object.values(all).filter(p=>p.days&&Object.keys(p.days).length);
+  const box=$('matchBox');
+  if(!people.length){box.innerHTML='';return}
+  const t=new Date(),today=key(t.getFullYear(),t.getMonth(),t.getDate());
+  const keys=new Set();people.forEach(p=>Object.keys(p.days).forEach(k=>{if(k>=today)keys.add(k)}));
+  const hits=[];
+  [...keys].sort().forEach(k=>{
+    const ok=SLOTS.map(s=>s[0]).filter(c=>people.every(p=>p.days[k]&&p.days[k][c]==='g'));
+    if(ok.length)hits.push({k,ok});
+  });
+  if(!hits.length){
+    box.innerHTML='<div class="match none">ยังไม่มีวันที่ทุกคน ('+people.length+' คน) ว่างตรงกัน</div>';return;
+  }
+  const show=hits.slice(0,10);
+  box.innerHTML='<div class="match"><div class="t">🎉 วันที่ทุกคนว่างตรงกัน ('+people.length+' คน)</div><div class="chips">'+
+    show.map(h=>{const [y,m,d]=h.k.split('-').map(Number);
+      const label=h.ok.length===3?'ทั้งวัน':h.ok.map(c=>SLOTNAME[c]).join(', ');
+      return '<span class="chip" data-k="'+h.k+'"><b>'+d+' '+SHORT[m-1]+'</b> · '+label+'</span>'}).join('')+
+    (hits.length>show.length?'<span class="chip" style="border-style:dashed">+'+(hits.length-show.length)+' วัน</span>':'')+
+    '</div></div>';
+}
 function renderMembers(){
   const y=cur.getFullYear(),m=cur.getMonth(),pre=y+'-'+String(m+1).padStart(2,'0')+'-';
   const rows=Object.entries(all).map(([id,p])=>{
@@ -246,6 +279,11 @@ $('sheet').addEventListener('click',e=>{
   if(b.dataset.s){setSlot(k,b.dataset.s,b.dataset.v);openDay(k);render()}
 });
 $('bg').addEventListener('click',e=>{if(e.target===$('bg')){$('bg').classList.remove('on');render()}});
+$('matchBox').addEventListener('click',e=>{
+  const c=e.target.closest('.chip[data-k]');if(!c)return;
+  const [y,m]=c.dataset.k.split('-').map(Number);
+  cur=new Date(y,m-1,1);view='all';render();openDay(c.dataset.k);
+});
 $('prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);render()};
 $('next').onclick=()=>{cur.setMonth(cur.getMonth()+1);render()};
 $('tMine').onclick=()=>{view='mine';render()};
