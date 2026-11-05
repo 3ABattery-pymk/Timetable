@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตารางนัดเพื่อน</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--g:#2fa866;--gb:#dff5e8;--o:#f2994a;--ob:#fdebd8;--r:#e5484d;--rb:#fde3e4;--ink:#1f2430;--mute:#6b7280;--line:#e5e7eb;--bg:#f6f7f9;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:560px;margin:0 auto;padding:14px 12px 90px}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border-radius:16px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center}
+input[type=text]{flex:1;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;min-width:0}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 14px;background:#eef0f3;color:var(--ink)}
+button.pri{background:var(--ink);color:#fff}
+.tabs{display:flex;background:#eef0f3;border-radius:12px;padding:3px;margin-bottom:12px}
+.tabs button{flex:1;background:none;padding:8px}
+.tabs button.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);font-weight:700}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin:2px 0 10px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin-right:4px}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mh b{font-size:17px}
+.mh button{width:40px;padding:8px 0;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{text-align:center;font-size:12px;color:var(--mute);padding:2px 0}
+.day{aspect-ratio:1/1.05;border-radius:10px;border:1px solid var(--line);background:#fff;padding:4px 3px 3px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;position:relative;min-width:0}
+.day.empty{border:0;background:none;cursor:default}
+.day.today{outline:2px solid var(--ink)}
+.day .n{font-size:13px;font-weight:500;text-align:left;padding-left:2px}
+.day .bars{display:flex;flex-direction:column;gap:2px}
+.bar{height:5px;border-radius:3px;background:#eceef1}
+.bar.g{background:var(--g)}.bar.o{background:var(--o)}.bar.r{background:var(--r)}
+.day.best{background:var(--gb);border-color:var(--g)}
+.day .cnt{font-size:10px;text-align:center;line-height:1.1;color:var(--mute)}
+.day .cnt b{color:var(--g)}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center;z-index:9}
+.sheet-bg.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:16px 16px 24px;max-height:85vh;overflow:auto}
+.sheet h2{font-size:17px;margin:0 0 10px}
+.slot{margin:12px 0}
+.slot .l{font-size:14px;margin-bottom:6px;font-weight:500}
+.opts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.opts button{padding:10px 2px;font-size:13px;border:2px solid transparent}
+.opts .g{background:var(--gb);color:#17703f}.opts .o{background:var(--ob);color:#9a5410}.opts .r{background:var(--rb);color:#a02328}
+.opts .c{background:#f1f2f4;color:var(--mute)}
+.opts button.sel{border-color:currentColor;font-weight:700}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.quick button{font-size:12px;padding:6px 10px}
+.who{font-size:14px;margin:8px 0}
+.who .tag{display:inline-block;padding:2px 9px;border-radius:99px;margin:2px 3px 2px 0;font-size:13px}
+.tag.g{background:var(--gb);color:#17703f}.tag.o{background:var(--ob);color:#9a5410}.tag.r{background:var(--rb);color:#a02328}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+.hide{display:none}
+.mypick{display:flex;gap:6px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📅 ตารางนัดเพื่อน</h1>
+
+  <div class="card" id="nameCard">
+    <div class="row">
+      <input type="text" id="nameIn" placeholder="ใส่ชื่อของคุณ เช่น นุ่น" maxlength="20">
+      <button class="pri" id="nameBtn">ตกลง</button>
+    </div>
+    <div class="note" id="nameNote">ใส่ชื่อก่อน แล้วกดวันในปฏิทินเพื่อเติมว่าว่างช่วงไหน</div>
+  </div>
+
+  <div class="tabs">
+    <button id="tMine" class="on">ของฉัน</button>
+    <button id="tAll">ดูของทุกคน</button>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--g)"></i>ว่าง</span>
+    <span><i class="dot" style="background:var(--o)"></i>ยังไม่แน่ใจ</span>
+    <span><i class="dot" style="background:var(--r)"></i>ไม่ว่าง</span>
+    <span id="barHint" style="margin-left:auto">แถบ = เช้า / บ่าย / เย็น</span>
+  </div>
+
+  <div class="card">
+    <div class="mh">
+      <button id="prev">‹</button><b id="title"></b><button id="next">›</button>
+    </div>
+    <div class="grid" id="dows"></div>
+    <div class="grid" id="cal" style="margin-top:4px"></div>
+    <div class="note hide" id="allNote">วันที่ไฮไลต์เขียว = ทุกคนที่กรอกแล้วว่างอย่างน้อยหนึ่งช่วงเวลา (ไม่มีใครติดแดงทั้งวัน) · ตัวเลขเขียว = จำนวนคนว่าง</div>
+  </div>
+  <div class="note" id="syncNote"></div>
+</div>
+
+<div class="sheet-bg" id="bg"><div class="sheet" id="sheet"></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ====== วางค่า firebaseConfig ของคุณตรงนี้ (ดูวิธีในไฟล์ README.md) ======
+const firebaseConfig = {
+  apiKey: "AIzaSyD2T_mWqrsyHypiUN8ONLuPLZ8NxWwVfRs",
+  authDomain: "timetable-friend.firebaseapp.com",
+  projectId: "timetable-friend",
+  storageBucket: "timetable-friend.firebasestorage.app",
+  messagingSenderId: "189457683993",
+  appId: "1:189457683993:web:98bc6be806ce490eda3c88"
+};
+// =====================================================================
+const SLOTS=[['m','เช้า (06–12)'],['a','บ่าย (12–17)'],['e','เย็น/ค่ำ (17–24)']];
+const STAT=[['g','ว่าง'],['o','ไม่แน่ใจ'],['r','ไม่ว่าง'],['c','ล้าง']];
+const DOW=['อา','จ','อ','พ','พฤ','ศ','ส'];
+const MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const $=id=>document.getElementById(id);
+let me='', view='mine', cur=new Date(); cur.setDate(1);
+let all={}; // id -> {name, days:{key:{m,a,e}}}
+let col=null, saveTimer=null, live=false;
+
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function pid(n){return 'p'+Array.from(new TextEncoder().encode(n.trim().toLowerCase())).map(b=>b.toString(16).padStart(2,'0')).join('')}
+function key(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function mine(){const id=pid(me);if(!all[id])all[id]={name:me,days:{}};return all[id]}
+
+// ---- render
+function render(){
+  $('title').textContent=MONTHS[cur.getMonth()]+' '+(cur.getFullYear()+543);
+  $('tMine').classList.toggle('on',view==='mine');$('tAll').classList.toggle('on',view==='all');
+  $('allNote').classList.toggle('hide',view!=='all');
+  $('barHint').textContent=view==='mine'?'แถบ = เช้า / บ่าย / เย็น':'ตัวเลข = คนว่าง';
+  const y=cur.getFullYear(),m=cur.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+  const t=new Date(),tk=key(t.getFullYear(),t.getMonth(),t.getDate());
+  let h='';
+  for(let i=0;i<first;i++)h+='<div class="day empty"></div>';
+  for(let d=1;d<=n;d++){
+    const k=key(y,m,d);let inner='',cls='day'+(k===tk?' today':'');
+    if(view==='mine'){
+      const v=(me&&all[pid(me)]&&all[pid(me)].days[k])||{};
+      inner='<div class="bars">'+SLOTS.map(s=>'<div class="bar '+(v[s[0]]||'')+'"></div>').join('')+'</div>';
+    }else{
+      const s=summary(k);
+      if(s.people>0&&s.g>0&&s.r<s.people)cls+=' best';
+      inner=s.people?'<div class="cnt"><b>'+s.g+'</b>/'+s.people+'</div>':'<div class="cnt">&nbsp;</div>';
+      if(s.people)inner='<div class="bars">'+SLOTS.map(x=>'<div class="bar '+s.top[x[0]]+'"></div>').join('')+'</div>'+inner;
+    }
+    h+='<div class="'+cls+'" data-k="'+k+'"><div class="n">'+d+'</div>'+inner+'</div>';
+  }
+  $('cal').innerHTML=h;
+}
+function summary(k){
+  // per day: people who answered anything; g = people with >=1 green slot; r = people all red
+  let people=0,g=0,r=0;const slotG={m:0,a:0,e:0},slotR={m:0,a:0,e:0},slotN={m:0,a:0,e:0};
+  Object.values(all).forEach(p=>{
+    const v=p.days&&p.days[k];if(!v)return;
+    const vals=SLOTS.map(s=>v[s[0]]).filter(Boolean);if(!vals.length)return;
+    people++;if(vals.includes('g'))g++;
+    if(vals.length===3&&vals.every(x=>x==='r'))r++;
+    SLOTS.forEach(s=>{const x=v[s[0]];if(x){slotN[s[0]]++;if(x==='g')slotG[s[0]]++;if(x==='r')slotR[s[0]]++}});
+  });
+  const top={};SLOTS.forEach(s=>{const c=s[0];
+    top[c]=!slotN[c]?'':slotG[c]===slotN[c]?'g':slotR[c]===slotN[c]?'r':slotG[c]>0?'o':'o'});
+  return {people,g,r,top};
+}
+
+// ---- sheet
+function openDay(k){
+  const [y,mo,d]=k.split('-').map(Number);
+  const dt=new Date(y,mo-1,d);
+  const title=DOW[dt.getDay()]+' '+d+' '+MONTHS[mo-1];
+  let h='<h2>'+title+'</h2>';
+  if(view==='mine'){
+    if(!me){alert_need();return}
+    const v=mine().days[k]||{};
+    h+='<div class="quick"><button data-all="g">ว่างทั้งวัน</button><button data-all="o">ไม่แน่ใจทั้งวัน</button><button data-all="r">ไม่ว่างทั้งวัน</button><button data-all="c">ล้างทั้งวัน</button></div>';
+    SLOTS.forEach(s=>{
+      h+='<div class="slot"><div class="l">'+s[1]+'</div><div class="opts">'+STAT.map(t=>'<button class="'+t[0]+(v[s[0]]===t[0]?' sel':'')+'" data-s="'+s[0]+'" data-v="'+t[0]+'">'+t[1]+'</button>').join('')+'</div></div>';
+    });
+    h+='<button class="pri" style="width:100%;margin-top:6px" id="done">เสร็จ</button>';
+  }else{
+    SLOTS.forEach(s=>{
+      const by={g:[],o:[],r:[]};
+      Object.values(all).forEach(p=>{const x=p.days&&p.days[k]&&p.days[k][s[0]];if(x&&by[x])by[x].push(p.name)});
+      h+='<div class="who"><b>'+s[1]+'</b><br>'+['g','o','r'].map(c=>by[c].length?'<span class="tag '+c+'">'+by[c].map(esc).join(', ')+'</span> ':'').join('')+(by.g.length+by.o.length+by.r.length?'':'<span style="color:var(--mute)">ยังไม่มีใครกรอก</span>')+'</div>';
+    });
+    h+='<button class="pri" style="width:100%;margin-top:6px" id="done">ปิด</button>';
+  }
+  $('sheet').innerHTML=h;$('sheet').dataset.k=k;$('bg').classList.add('on');
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function alert_need(){$('nameNote').textContent='⚠️ ใส่ชื่อของคุณก่อนนะ';$('nameIn').focus()}
+
+function setSlot(k,s,v){
+  const p=mine();p.days[k]=p.days[k]||{};
+  if(v==='c')delete p.days[k][s];else p.days[k][s]=v;
+  if(!Object.keys(p.days[k]).length)delete p.days[k];
+  queueSave();
+}
+function queueSave(){
+  lsSet('nad_local_'+pid(me),JSON.stringify(mine()));
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    if(!col)return;
+    try{await col.doc(pid(me)).set({name:me,days:mine().days,t:Date.now()});$('syncNote').textContent='บันทึกแล้ว ✓ เพื่อนเห็นทันที'}
+    catch(e){$('syncNote').textContent='บันทึกไม่สำเร็จ (ตอนนี้เก็บไว้ในเครื่องก่อน)'}
+  },400);
+}
+
+// ---- events
+$('cal').addEventListener('click',e=>{const d=e.target.closest('.day[data-k]');if(d)openDay(d.dataset.k)});
+$('sheet').addEventListener('click',e=>{
+  const k=$('sheet').dataset.k,b=e.target.closest('button');if(!b)return;
+  if(b.id==='done'){$('bg').classList.remove('on');render();return}
+  if(b.dataset.all){SLOTS.forEach(s=>setSlot(k,s[0],b.dataset.all));openDay(k);render();return}
+  if(b.dataset.s){setSlot(k,b.dataset.s,b.dataset.v);openDay(k);render()}
+});
+$('bg').addEventListener('click',e=>{if(e.target===$('bg')){$('bg').classList.remove('on');render()}});
+$('prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);render()};
+$('next').onclick=()=>{cur.setMonth(cur.getMonth()+1);render()};
+$('tMine').onclick=()=>{view='mine';render()};
+$('tAll').onclick=()=>{view='all';render()};
+function setName(){
+  const n=$('nameIn').value.trim();if(!n)return;
+  me=n;lsSet('nad_name',n);
+  try{const l=JSON.parse(lsGet('nad_local_'+pid(me))||'null');if(l&&!all[pid(me)])all[pid(me)]=l}catch(e){}
+  $('nameNote').textContent='สวัสดี '+n+'! กดวันที่ในปฏิทินเพื่อเติมเวลาว่าง';
+  $('nameBtn').textContent='เปลี่ยน';render();
+}
+$('nameBtn').onclick=()=>{ if(me&&$('nameBtn').textContent==='เปลี่ยน'&&$('nameIn').value.trim()===me){$('nameIn').select();$('nameBtn').textContent='ตกลง';return} setName()};
+$('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')setName()});
+
+// ---- init
+(function(){
+  const n=lsGet('nad_name');if(n){$('nameIn').value=n;setName()}
+  render();
+  $('dows').innerHTML=DOW.map(d=>'<div class="dow">'+d+'</div>').join('');
+  $('syncNote').textContent='กำลังเชื่อมต่อข้อมูลร่วมกัน…';
+  (async()=>{
+    let db=null;
+    try{ if(firebaseConfig.projectId&&window.firebase){firebase.initializeApp(firebaseConfig);db=firebase.firestore()} }catch(e){}
+    if(!db){$('syncNote').textContent='โหมดออฟไลน์: ยังไม่ได้ใส่ firebaseConfig ข้อมูลเก็บในเครื่องนี้เท่านั้น';return}
+    col=db.collection('avail');
+    const t=setTimeout(()=>{$('syncNote').textContent='เชื่อมต่อช้า… ลองรีเฟรชหน้า'},10000);
+    col.onSnapshot(snap=>{
+      clearTimeout(t);
+      const next={};
+      const docs=snap.docs||[];
+      docs.forEach(d=>{const v=typeof d.data==='function'?d.data():d;if(v&&v.name)next[d.id]={name:v.name,days:v.days||{}}});
+      // keep unsaved local edits for me
+      if(me){const id=pid(me);if(all[id]&&saveTimer&&!next[id])next[id]=all[id]}
+      all=next;live=true;
+      $('syncNote').textContent='เชื่อมต่อแล้ว · '+Object.keys(all).length+' คนกรอกแล้ว';
+      if(!$('bg').classList.contains('on'))render();
+    },err=>{clearTimeout(t);$('syncNote').textContent='เชื่อมต่อไม่ได้ ใช้โหมดในเครื่องแทน'});
+  })();
+})();
+</script>
+</body>
+</html>
