@@ -54,6 +54,16 @@ button.pri{background:var(--ink);color:#fff}
 .tag.g{background:var(--gb);color:#17703f}.tag.o{background:var(--ob);color:#9a5410}.tag.r{background:var(--rb);color:#a02328}
 .note{font-size:12px;color:var(--mute);margin-top:6px}
 .hide{display:none}
+.mt{width:100%;border-collapse:collapse;font-size:14px}
+.mt th{font-size:12px;color:var(--mute);font-weight:500;text-align:center;padding:4px 2px}
+.mt th:first-child,.mt td:first-child{text-align:left}
+.mt td{padding:8px 2px;border-top:1px solid var(--line);text-align:center}
+.mt td:first-child{font-weight:500;padding-right:6px;word-break:break-all}
+.mt .me{background:#f3f4f6}
+.pill{display:inline-block;min-width:26px;padding:1px 7px;border-radius:99px;font-size:13px}
+.pill.g{background:var(--gb);color:#17703f}.pill.o{background:var(--ob);color:#9a5410}.pill.r{background:var(--rb);color:#a02328}.pill.z{color:#bbb}
+.mh2{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.mh2 b{font-size:16px}.mh2 span{font-size:12px;color:var(--mute)}
 .mypick{display:flex;gap:6px;margin-bottom:10px}
 </style>
 </head>
@@ -88,6 +98,10 @@ button.pri{background:var(--ink);color:#fff}
     <div class="grid" id="dows"></div>
     <div class="grid" id="cal" style="margin-top:4px"></div>
     <div class="note hide" id="allNote">วันที่ไฮไลต์เขียว = ทุกคนที่กรอกแล้วว่างอย่างน้อยหนึ่งช่วงเวลา (ไม่มีใครติดแดงทั้งวัน) · ตัวเลขเขียว = จำนวนคนว่าง</div>
+  </div>
+  <div class="card">
+    <div class="mh2"><b>👥 สมาชิก</b><span id="memSub"></span></div>
+    <div id="memBox"></div>
   </div>
   <div class="note" id="syncNote"></div>
 </div>
@@ -146,6 +160,7 @@ function render(){
     h+='<div class="'+cls+'" data-k="'+k+'"><div class="n">'+d+'</div>'+inner+'</div>';
   }
   $('cal').innerHTML=h;
+  renderMembers();
 }
 function summary(k){
   // per day: people who answered anything; g = people with >=1 green slot; r = people all red
@@ -160,6 +175,23 @@ function summary(k){
   const top={};SLOTS.forEach(s=>{const c=s[0];
     top[c]=!slotN[c]?'':slotG[c]===slotN[c]?'g':slotR[c]===slotN[c]?'r':slotG[c]>0?'o':'o'});
   return {people,g,r,top};
+}
+
+function renderMembers(){
+  const y=cur.getFullYear(),m=cur.getMonth(),pre=y+'-'+String(m+1).padStart(2,'0')+'-';
+  const rows=Object.entries(all).map(([id,p])=>{
+    let g=0,o=0,r=0;
+    Object.keys(p.days||{}).forEach(k=>{if(k.startsWith(pre)){const v=p.days[k];SLOTS.forEach(s=>{if(v[s[0]]==='g')g++;else if(v[s[0]]==='o')o++;else if(v[s[0]]==='r')r++})}});
+    const days=Object.keys(p.days||{}).filter(k=>k.startsWith(pre)).length;
+    return {id,name:p.name,days,g,o,r,t:p.t||0};
+  }).sort((a,b)=>b.days-a.days||a.name.localeCompare(b.name,'th'));
+  $('memSub').textContent=MONTHS[m]+' · '+rows.length+' คน';
+  if(!rows.length){$('memBox').innerHTML='<div class="note">ยังไม่มีใครกรอก — เป็นคนแรกเลย!</div>';return}
+  const pill=(c,n)=>'<span class="pill '+(n?c:'z')+'">'+n+'</span>';
+  const meId=me?pid(me):'';
+  $('memBox').innerHTML='<table class="mt"><tr><th>ชื่อ</th><th>วันที่กรอก</th><th>ว่าง</th><th>ไม่แน่ใจ</th><th>ไม่ว่าง</th></tr>'+
+    rows.map(r=>'<tr'+(r.id===meId?' class="me"':'')+'><td>'+esc(r.name)+(r.id===meId?' (คุณ)':'')+'</td><td>'+(r.days?r.days+' วัน':'<span style="color:#bbb">ยังไม่กรอก</span>')+'</td><td>'+pill('g',r.g)+'</td><td>'+pill('o',r.o)+'</td><td>'+pill('r',r.r)+'</td></tr>').join('')+
+    '</table><div class="note">ตัวเลขสีคือจำนวนช่วงเวลา (เช้า/บ่าย/เย็น) ของเดือนที่เปิดอยู่</div>';
 }
 
 // ---- sheet
@@ -244,7 +276,7 @@ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')setName()});
       clearTimeout(t);
       const next={};
       const docs=snap.docs||[];
-      docs.forEach(d=>{const v=typeof d.data==='function'?d.data():d;if(v&&v.name)next[d.id]={name:v.name,days:v.days||{}}});
+      docs.forEach(d=>{const v=typeof d.data==='function'?d.data():d;if(v&&v.name)next[d.id]={name:v.name,days:v.days||{},t:v.t||0}});
       // keep unsaved local edits for me
       if(me){const id=pid(me);if(all[id]&&saveTimer&&!next[id])next[id]=all[id]}
       all=next;live=true;
