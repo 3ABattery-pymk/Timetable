@@ -319,9 +319,12 @@ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')setName()});
 // ---- init
 (function(){
   $('grpTitle').textContent=G?'กลุ่ม: '+GRAW:'กลุ่มหลัก';
-  const base=location.href.split('#')[0];
+  try{const q=new URLSearchParams(location.search).get('admin');if(q==='1')lsSet('nad_admin','1');else if(q==='0')lsSet('nad_admin','0')}catch(e){}
+  const isAdmin=lsGet('nad_admin')==='1';
+  const base=location.origin+location.pathname;
   const link=G?base+'#'+encodeURIComponent(GRAW):base;
   $('grpLink').textContent=link;
+  if(!isAdmin){['grpToggle','grpPanel','grpLink','grpCopy'].forEach(id=>$(id).classList.add('hide'))}
   $('grpToggle').onclick=()=>{$('grpPanel').classList.toggle('hide');$('grpIn').focus()};
   const go=()=>{const v=$('grpIn').value.trim();if(!v)return;location.hash=encodeURIComponent(v)};
   $('grpBtn').onclick=go;
