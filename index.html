@@ -77,6 +77,22 @@ button.pri{background:var(--ink);color:#fff}
 <div class="wrap">
   <h1>📅 ตารางนัดเพื่อน</h1>
 
+  <div class="card" id="grpCard">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <b id="grpTitle" style="font-size:15px"></b>
+      <span id="grpToggle" style="font-size:12px;color:var(--mute);cursor:pointer;text-decoration:underline">เปลี่ยน/สร้างกลุ่ม</span>
+    </div>
+    <div id="grpPanel" class="hide" style="margin-top:10px">
+      <div class="row">
+        <input type="text" id="grpIn" placeholder="ตั้งชื่อกลุ่ม เช่น ทริปภูเก็ต" maxlength="40">
+        <button class="pri" id="grpBtn">เปิดกลุ่ม</button>
+      </div>
+      <div class="note">ใครได้ลิงก์ที่ลงท้ายด้วยชื่อกลุ่มเดียวกัน จะเห็นตารางเดียวกัน ตั้งชื่อที่เดายากหน่อยเพื่อไม่ให้ปนกับกลุ่มอื่น</div>
+    </div>
+    <div class="note" id="grpLink" style="word-break:break-all"></div>
+    <button id="grpCopy" style="margin-top:6px;font-size:12px;padding:6px 10px">คัดลอกลิงก์กลุ่มนี้</button>
+  </div>
+
   <div class="card" id="nameCard">
     <div class="row">
       <input type="text" id="nameIn" placeholder="ใส่ชื่อของคุณ เช่น นุ่น" maxlength="20">
@@ -129,6 +145,8 @@ const firebaseConfig = {
   appId: "1:189457683993:web:98bc6be806ce490eda3c88"
 };
 // =====================================================================
+let GRAW='';try{GRAW=decodeURIComponent((location.hash||'').slice(1)).trim()}catch(e){}
+const G=GRAW.replace(/[\/\\#?%\s.]+/g,'-').slice(0,40).toLowerCase();
 const SLOTS=[['m','เช้า (06–12)'],['a','บ่าย (12–17)'],['e','เย็น/ค่ำ (17–24)']];
 const STAT=[['g','ว่าง'],['o','ไม่แน่ใจ'],['r','ไม่ว่าง'],['c','ล้าง']];
 const DOW=['อา','จ','อ','พ','พฤ','ศ','ส'];
@@ -261,7 +279,7 @@ function setSlot(k,s,v){
   queueSave();
 }
 function queueSave(){
-  lsSet('nad_local_'+pid(me),JSON.stringify(mine()));
+  lsSet('nad_local_'+G+'_'+pid(me),JSON.stringify(mine()));
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     if(!col)return;
@@ -291,7 +309,7 @@ $('tAll').onclick=()=>{view='all';render()};
 function setName(){
   const n=$('nameIn').value.trim();if(!n)return;
   me=n;lsSet('nad_name',n);
-  try{const l=JSON.parse(lsGet('nad_local_'+pid(me))||'null');if(l&&!all[pid(me)])all[pid(me)]=l}catch(e){}
+  try{const l=JSON.parse(lsGet('nad_local_'+G+'_'+pid(me))||'null');if(l&&!all[pid(me)])all[pid(me)]=l}catch(e){}
   $('nameNote').textContent='สวัสดี '+n+'! กดวันที่ในปฏิทินเพื่อเติมเวลาว่าง';
   $('nameBtn').textContent='เปลี่ยน';render();
 }
@@ -300,6 +318,19 @@ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')setName()});
 
 // ---- init
 (function(){
+  $('grpTitle').textContent=G?'กลุ่ม: '+GRAW:'กลุ่มหลัก';
+  const base=location.href.split('#')[0];
+  const link=G?base+'#'+encodeURIComponent(GRAW):base;
+  $('grpLink').textContent=link;
+  $('grpToggle').onclick=()=>{$('grpPanel').classList.toggle('hide');$('grpIn').focus()};
+  const go=()=>{const v=$('grpIn').value.trim();if(!v)return;location.hash=encodeURIComponent(v)};
+  $('grpBtn').onclick=go;
+  $('grpIn').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  $('grpCopy').onclick=async()=>{
+    try{await navigator.clipboard.writeText(link);$('grpCopy').textContent='คัดลอกแล้ว ✓'}
+    catch(e){$('grpCopy').textContent='กดค้างที่ลิงก์ด้านบนเพื่อคัดลอก'}
+  };
+  window.addEventListener('hashchange',()=>location.reload());
   const n=lsGet('nad_name');if(n){$('nameIn').value=n;setName()}
   render();
   $('dows').innerHTML=DOW.map(d=>'<div class="dow">'+d+'</div>').join('');
@@ -308,7 +339,7 @@ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')setName()});
     let db=null;
     try{ if(firebaseConfig.projectId&&window.firebase){firebase.initializeApp(firebaseConfig);db=firebase.firestore()} }catch(e){}
     if(!db){$('syncNote').textContent='โหมดออฟไลน์: ยังไม่ได้ใส่ firebaseConfig ข้อมูลเก็บในเครื่องนี้เท่านั้น';return}
-    col=db.collection('avail');
+    col=G?db.collection('groups').doc('g_'+G).collection('avail'):db.collection('avail');
     const t=setTimeout(()=>{$('syncNote').textContent='เชื่อมต่อช้า… ลองรีเฟรชหน้า'},10000);
     col.onSnapshot(snap=>{
       clearTimeout(t);
